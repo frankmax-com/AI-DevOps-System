@@ -1,0 +1,91 @@
+# AI DevOps System - Repository Configuration
+
+## Ignore OS and IDE files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+## Environment and secrets
+.env
+*.env.local
+*.env.production
+config/secrets/
+*.key
+*.pem
+
+## Development artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+## Testing and coverage
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+## Node.js (for any frontend components)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+## Logs
+*.log
+logs/
+*.log.*
+
+## Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+## Database
+*.db
+*.sqlite
+*.sqlite3
+
+## Docker
+.dockerignore
+
+## Kubernetes secrets
+k8s/secrets/
+*.secret.yaml
+
+## Personal development notes
+TODO.md
+NOTES.md
+scratch/
+
+## Backup files
+*.bak
+*.backup
