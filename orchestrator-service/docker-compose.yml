@@ -1,0 +1,135 @@
+version: '3.8'
+
+# Local development orchestration (development only)
+# Do not use in production - use Kubernetes instead
+
+services:
+  orchestrator-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - AZURE_DEVOPS_ORG_URL=${AZURE_DEVOPS_ORG_URL}
+      - AZURE_DEVOPS_PAT=${AZURE_DEVOPS_PAT}
+      - AZURE_DEVOPS_PROJECT=${AZURE_DEVOPS_PROJECT}
+      - REDIS_URL=redis://redis:6379/0
+      - AUDIT_SERVICE_URL=http://audit-service:8080
+      - LOG_LEVEL=INFO
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    networks:
+      - orchestrator-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  dev-agent-service:
+    build:
+      context: ../dev-agent-service
+      dockerfile: ../dev-agent-service/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - AZURE_DEVOPS_ORG_URL=${AZURE_DEVOPS_ORG_URL}
+      - AZURE_DEVOPS_PAT=${AZURE_DEVOPS_PAT}
+      - AZURE_DEVOPS_PROJECT=${AZURE_DEVOPS_PROJECT}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - REDIS_URL=redis://redis:6379/0
+      - AUDIT_SERVICE_URL=http://audit-service:8080
+    env_file:
+      - ../dev-agent-service/.env
+    depends_on:
+      - redis
+    networks:
+      - orchestrator-network
+    profiles: ["dev", "full"]
+
+  qa-agent-service:
+    build:
+      context: ../qa-agent-service
+      dockerfile: ../qa-agent-service/Dockerfile
+    ports:
+      - "8081:8080"
+    environment:
+      - AZURE_DEVOPS_ORG_URL=${AZURE_DEVOPS_ORG_URL}
+      - AZURE_DEVOPS_PAT=${AZURE_DEVOPS_PAT}
+      - AZURE_DEVOPS_PROJECT=${AZURE_DEVOPS_PROJECT}
+      - REDIS_URL=redis://redis:6379/0
+      - AUDIT_SERVICE_URL=http://audit-service:8080
+    depends_on:
+      - redis
+    networks:
+      - orchestrator-network
+    profiles: ["full"]
+
+  security-agent-service:
+    build:
+      context: ../security-agent-service
+      dockerfile: ../security-agent-service/Dockerfile
+    ports:
+      - "8082:8080"
+    environment:
+      - AZURE_DEVOPS_ORG_URL=${AZURE_DEVOPS_ORG_URL}
+      - AZURE_DEVOPS_PAT=${AZURE_DEVOPS_PAT}
+      - AZURE_DEVOPS_PROJECT=${AZURE_DEVOPS_PROJECT}
+      - REDIS_URL=redis://redis:6379/0
+      - AUDIT_SERVICE_URL=http://audit-service:8080
+    depends_on:
+      - redis
+    networks:
+      - orchestrator-network
+    profiles: ["full"]
+
+  release-agent-service:
+    build:
+      context: ../release-agent-service
+      dockerfile: ../release-agent-service/Dockerfile
+    ports:
+      - "8083:8080"
+    environment:
+      - AZURE_DEVOPS_ORG_URL=${AZURE_DEVOPS_ORG_URL}
+      - AZURE_DEVOPS_PAT=${AZURE_DEVOPS_PAT}
+      - AZURE_DEVOPS_PROJECT=${AZURE_DEVOPS_PROJECT}
+      - REDIS_URL=redis://redis:6379/0
+      - AUDIT_SERVICE_URL=http://audit-service:8080
+    depends_on:
+      - redis
+    networks:
+      - orchestrator-network
+    profiles: ["full"]
+
+  audit-service:
+    build:
+      context: ../audit-service
+      dockerfile: ../audit-service/Dockerfile
+    ports:
+      - "8084:8080"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    networks:
+      - orchestrator-network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - orchestrator-network
+
+networks:
+  orchestrator-network:
+    driver: bridge
+
+volumes:
+  redis-data:
