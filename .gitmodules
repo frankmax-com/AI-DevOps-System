@@ -1,0 +1,3 @@
+[submodule "github-governance-factory"]
+	path = github-governance-factory
+	url = https://github.com/frankmax-com/github-governance-factory.git
