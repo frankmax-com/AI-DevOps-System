@@ -16,18 +16,30 @@
     - Pull: `git subtree pull --prefix=orchestrator-service https://github.com/frankmax-com/orchestrator-service.git master --squash`
     - Push: `git subtree push --prefix=orchestrator-service https://github.com/frankmax-com/orchestrator-service.git master`
 
+- **dev-agent-service** → https://github.com/frankmax-com/dev-agent-service.git
+  - Status: ✅ **Configured as git subtree**
+  - Purpose: Code generation and scaffolding
+  - Usage: 
+    - Pull: `git subtree pull --prefix=dev-agent-service https://github.com/frankmax-com/dev-agent-service.git master --squash`
+    - Push: `git subtree push --prefix=dev-agent-service https://github.com/frankmax-com/dev-agent-service.git master`
+
+- **ai-provider-agent-service** → https://github.com/frankmax-com/ai-provider-agent-service.git
+  - Status: ✅ **Configured as git subtree**
+  - Purpose: AI routing and provider integration
+  - Usage: 
+    - Pull: `git subtree pull --prefix=ai-provider-agent-service https://github.com/frankmax-com/ai-provider-agent-service.git master --squash`
+    - Push: `git subtree push --prefix=ai-provider-agent-service https://github.com/frankmax-com/ai-provider-agent-service.git master`
+
 ## 🚧 Ready for Setup (Repositories Created)
 
 ### Remaining Agent Services
-All repositories have been created on GitHub and are ready for subtree setup:
+The following repositories have been created on GitHub and are ready for subtree setup:
 
-- **dev-agent-service** → https://github.com/frankmax-com/dev-agent-service.git
 - **qa-agent-service** → https://github.com/frankmax-com/qa-agent-service.git
 - **security-agent-service** → https://github.com/frankmax-com/security-agent-service.git
 - **release-agent-service** → https://github.com/frankmax-com/release-agent-service.git
 - **pm-agent-service** → https://github.com/frankmax-com/pm-agent-service.git
 - **audit-service** → https://github.com/frankmax-com/audit-service.git
-- **ai-provider-agent-service** → https://github.com/frankmax-com/ai-provider-agent-service.git
 
 ## 📋 Next Steps
 
