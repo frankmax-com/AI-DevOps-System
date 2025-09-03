@@ -27,6 +27,7 @@ Welcome to the first enterprise development platform that **governs itself**. Th
 **Sprint Goal**: Complete AI Provider OpenAI integration and advance Dev Agent template engine
 
 ### 🔥 **Active Work**
+- **Git Subtree Architecture** (Infrastructure) - 60% complete (3/8 services), due Sept 10
 - **OpenAI GPT-4 Integration** (AI Provider Agent) - 70% complete, due Sept 20
 - **Template Engine Development** (Dev Agent) - 40% complete, due Sept 30
 - **Service Discovery Framework** (Orchestrator) - Architecture review phase
@@ -66,25 +67,134 @@ gantt
 | **🔄 Workflows** | [End-to-End Flow](./.specs/conversation%20history/end-to-end-flow-analysis.md) | Process documentation |
 | **🎬 Demo Walkthrough** | [Living Governance Demo](./LIVING-GOVERNANCE-WALKTHROUGH-STORYBOARD.md) | Self-governance proof |
 
-## 🏗️ **Repository Structure**
+## 🏗️ **Repository Architecture: Subtrees & Submodules**
 
-This monorepo demonstrates the **factory-of-factories** architecture with **git subtrees** for agent services and **git submodules** for reusable governance:
+This monorepo demonstrates the **factory-of-factories** architecture using **git subtrees** for agent services and **git submodules** for reusable governance components.
 
+### **📋 Git Submodule (Reusable Governance)**
+```bash
+# GitHub Governance Factory - Universal governance framework
+github-governance-factory/          # Git Submodule
+├── README.md                       # Governance framework documentation
+├── governance-config.json          # Configuration templates
+└── specs/                          # Governance specifications
+```
+
+**Repository**: [`frankmax-com/github-governance-factory`](https://github.com/frankmax-com/github-governance-factory)  
+**Purpose**: Reusable governance framework that can be shared across multiple projects  
+**Status**: ✅ **Active Submodule**
+
+**Working with the Submodule**:
+```bash
+# Initialize submodules (for new clones)
+git submodule init && git submodule update
+
+# Update to latest governance factory version
+git submodule update --remote github-governance-factory
+git add github-governance-factory
+git commit -m "Update governance factory to latest version"
+```
+
+### **🔧 Git Subtrees (Agent Services)**
+
+Each agent service is maintained as a **git subtree**, allowing independent development while keeping code in the monorepo:
+
+#### **✅ Implemented Subtrees (3/8)**
+
+| Service | Repository | Status | Purpose |
+|---------|------------|--------|---------|
+| **orchestrator-service** | [`frankmax-com/orchestrator-service`](https://github.com/frankmax-com/orchestrator-service) | ✅ **Active Subtree** | AI coordination layer |
+| **dev-agent-service** | [`frankmax-com/dev-agent-service`](https://github.com/frankmax-com/dev-agent-service) | ✅ **Active Subtree** | Code generation & scaffolding |
+| **ai-provider-agent-service** | [`frankmax-com/ai-provider-agent-service`](https://github.com/frankmax-com/ai-provider-agent-service) | ✅ **Active Subtree** | AI routing & provider integration |
+
+#### **🚧 Ready for Subtree Setup (5/8)**
+
+| Service | Repository | Status | Purpose |
+|---------|------------|--------|---------|
+| **qa-agent-service** | [`frankmax-com/qa-agent-service`](https://github.com/frankmax-com/qa-agent-service) | 📅 **Repository Created** | Testing automation |
+| **security-agent-service** | [`frankmax-com/security-agent-service`](https://github.com/frankmax-com/security-agent-service) | 📅 **Repository Created** | Vulnerability scanning |
+| **release-agent-service** | [`frankmax-com/release-agent-service`](https://github.com/frankmax-com/release-agent-service) | 📅 **Repository Created** | Deployment automation |
+| **pm-agent-service** | [`frankmax-com/pm-agent-service`](https://github.com/frankmax-com/pm-agent-service) | 📅 **Repository Created** | Requirements & planning |
+| **audit-service** | [`frankmax-com/audit-service`](https://github.com/frankmax-com/audit-service) | 📅 **Repository Created** | Audit trails & compliance |
+
+### **🔄 Working with Subtrees**
+
+**Pull changes from service repository**:
+```bash
+git subtree pull --prefix=orchestrator-service https://github.com/frankmax-com/orchestrator-service.git master --squash
+```
+
+**Push changes to service repository**:
+```bash
+git subtree push --prefix=orchestrator-service https://github.com/frankmax-com/orchestrator-service.git master
+```
+
+**Add new service as subtree**:
+```bash
+git subtree add --prefix=service-name https://github.com/frankmax-com/service-name.git master --squash
+```
+
+### **� Complete Directory Structure**
 ```
 AI-DevOps-System/                    # Main monorepo (this repository)
-├── github-governance-factory/       # Git Submodule (universal governance)
-├── orchestrator-service/           # Git Subtree (✅ complete)
-├── dev-agent-service/              # Git Subtree (🚧 in progress)
-├── ai-provider-agent-service/      # Git Subtree (🚧 in progress)
-├── qa-agent-service/               # Git Subtree (📅 planned)
-├── security-agent-service/         # Git Subtree (📅 planned)
-├── release-agent-service/          # Git Subtree (📅 planned)
-├── pm-agent-service/               # Git Subtree (📅 planned)
-├── audit-service/                  # Git Subtree (📅 planned)
-├── .specs/                         # Comprehensive specifications
-├── resources/                      # Development utilities
-└── setup-ai-devops-monorepo.bat   # Bootstrap script
+├── 📦 github-governance-factory/    # Git Submodule → Universal governance
+│   ├── governance-config.json
+│   ├── README.md
+│   └── specs/
+├── 🎯 orchestrator-service/         # Git Subtree → AI coordination
+│   ├── src/main.py
+│   ├── Dockerfile
+│   └── specs/
+├── 💻 dev-agent-service/            # Git Subtree → Code generation
+│   ├── src/agent.py
+│   ├── Dockerfile
+│   └── specs/
+├── 🤖 ai-provider-agent-service/    # Git Subtree → AI integration
+│   ├── src/ai_provider_agent.py
+│   ├── config/ai_providers_config.json
+│   └── specs/
+├── 🧪 qa-agent-service/             # Directory → Ready for subtree
+├── � security-agent-service/       # Directory → Ready for subtree
+├── 🚀 release-agent-service/        # Directory → Ready for subtree
+├── 📋 pm-agent-service/             # Directory → Ready for subtree
+├── � audit-service/                # Directory → Ready for subtree
+├── 📚 .specs/                       # Comprehensive specifications
+├── 🛠️ resources/                    # Development utilities
+├── 📖 COPILOT-GUIDANCE.md           # Monorepo development guide
+├── 📊 SUBTREE-SUBMODULE-STATUS.md   # Detailed implementation status
+└── 🚀 setup-ai-devops-monorepo.bat # Bootstrap script
 ```
+
+### **🎯 Architecture Benefits**
+
+#### **Git Submodule Advantages (Governance Factory)**
+- ✅ **Reusable across projects**: Same governance for multiple organizations
+- ✅ **Independent versioning**: Governance updates don't affect service development
+- ✅ **Shared standards**: Consistent governance across all frankmax-com projects
+
+#### **Git Subtree Advantages (Agent Services)**
+- ✅ **Unified development**: All code accessible in single repository
+- ✅ **Independent deployment**: Each service can be deployed separately
+- ✅ **Simplified CI/CD**: Single pipeline can build and test all services
+- ✅ **Easy debugging**: Cross-service development without complex setup
+
+### **📋 Quick Reference Commands**
+
+```bash
+# Clone repository with submodules
+git clone --recurse-submodules https://github.com/frankmax-com/AI-DevOps-System.git
+
+# Update all subtrees from their repositories
+make update-subtrees  # (Uses Makefile automation)
+
+# Pull latest governance factory
+git submodule update --remote && git add github-governance-factory && git commit -m "Update governance"
+
+# Check subtree status
+git log --oneline --grep="subtree" -10
+```
+
+For detailed subtree/submodule operations, see [`COPILOT-GUIDANCE.md`](./COPILOT-GUIDANCE.md) and [`SUBTREE-SUBMODULE-STATUS.md`](./SUBTREE-SUBMODULE-STATUS.md).
 
 ## 📈 **Real-Time Status Dashboard**
 
@@ -212,10 +322,33 @@ This repository demonstrates something unprecedented in enterprise software: **g
 
 ### **For Developers**
 ```bash
-git clone https://github.com/frankmax-com/AI-DevOps-System.git
+# Clone with all submodules
+git clone --recurse-submodules https://github.com/frankmax-com/AI-DevOps-System.git
 cd AI-DevOps-System
+
+# Setup development environment
 ./setup-ai-devops-monorepo.bat
+
+# Initialize submodules (if not cloned with --recurse-submodules)
+git submodule init && git submodule update
 ```
+
+### **Working with Subtrees & Submodules**
+```bash
+# Update governance factory to latest
+git submodule update --remote github-governance-factory
+
+# Pull changes from orchestrator service repository
+git subtree pull --prefix=orchestrator-service https://github.com/frankmax-com/orchestrator-service.git master --squash
+
+# Push changes to dev-agent service repository  
+git subtree push --prefix=dev-agent-service https://github.com/frankmax-com/dev-agent-service.git master
+
+# View subtree history
+git log --oneline --grep="subtree" -10
+```
+
+**📖 For complete subtree/submodule guide, see [`COPILOT-GUIDANCE.md`](./COPILOT-GUIDANCE.md)**
 
 ### **For Stakeholders**
 1. 📊 **View Live Status**: Check this README for real-time progress
