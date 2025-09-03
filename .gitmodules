@@ -4,3 +4,6 @@
 [submodule "ai-provider-factory"]
 	path = ai-provider-factory
 	url = https://github.com/frankmax-com/ai-provider-factory.git
+[submodule "azure-devops-governance-factory"]
+	path = azure-devops-governance-factory
+	url = https://github.com/frankmax-com/azure-devops-governance-factory.git
