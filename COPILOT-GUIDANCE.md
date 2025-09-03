@@ -283,3 +283,104 @@ make health-check
 ---
 
 *This document is maintained by the GitHub Governance Factory and updated automatically as the system evolves.*
+
+
+# Copilot Guidance – AI DevOps System Governance
+
+You are operating inside the **AI DevOps System monorepo**, which uses the **GitHub Governance Factory** (as a submodule) for enterprise project management.
+
+## Goal
+- Read project specifications (in `/docs/specs`) and conversation history (in `/docs/conversations`).
+- From these documents, automatically generate **GitHub Projects** and **GitHub Issues**.
+- Issues should follow Epic → Feature → Task hierarchy.
+- Issues should be tagged for the correct agent service:
+  - `agent:orchestrator`
+  - `agent:dev`
+  - `agent:qa`
+  - `agent:security`
+  - `agent:release`
+  - `agent:pm`
+  - `agent:audit`
+  - `agent:ai-provider`
+- Issues should also carry status labels: `status:backlog`, `status:in-progress`, `status:done`.
+
+## Required Actions
+1. **Project Creation**
+   - For each major theme in `/docs/specs`, create a GitHub Project.
+   - Each project corresponds to an Epic (e.g., “Orchestrator Service Completion”).
+
+2. **Issue Creation**
+   - Parse requirements from specs and conversations.
+   - Create issues for each Feature and Task.
+   - Link issues to the right Epic/Project.
+   - Assign labels and due dates.
+
+3. **Governance Checks**
+   - Confirm that GitHub Governance Factory is operational.
+   - Validate that all issues are linked to Projects and Milestones.
+   - Generate a dashboard view in the repo README with live links to Projects and Milestones.
+
+## Example
+If the spec says: *“Dev Agent must support FastAPI and Django scaffolding”*, Copilot should:
+- Create a Project → “Dev Agent Scaffolding Enhancements”
+- Create two issues:
+  - `[Dev Agent] Implement FastAPI scaffolding`
+  - `[Dev Agent] Implement Django scaffolding`
+- Tag them `agent:dev`, link them to the Project and milestone.
+
+
+# Copilot Guidance – AI DevOps System
+
+## Key Principle
+Do **not** attempt to create GitHub Projects or Issues directly at runtime.  
+We do not rely on “Copilot magic” for governance execution.  
+
+### Why
+- Governance must be **repeatable**, **auditable**, and **compliant**.
+- All governance actions (Projects, Issues, Milestones, Labels) are owned by the **GitHub Governance Factory** submodule.
+- This ensures enterprise compliance (CMMI, SOX, GDPR) and traceability.
+
+## Copilot’s Role
+- Assist developers by writing configs, templates, and YAML/JSON mappings.
+- Generate parsing logic that the Governance Factory will execute.
+- Help scaffold Issue Templates, Workflow files, or CLI wrappers that feed the factory.
+
+## Governance Factory’s Role
+- Read specifications (`/docs/specs/`) and conversations (`/docs/conversations/`).
+- Parse Epics → Features → Tasks.
+- Create Projects, Milestones, Issues, and Labels via GitHub API.
+- Enforce compliance and maintain audit trails.
+
+## Golden Rule
+Copilot = **design assistant**.  
+Governance Factory = **execution authority**.  
+
+# Copilot Guidance – Governance Authority
+
+## Core Rule
+Every Project and Issue you see in this repository was created by the **GitHub Governance Factory**.  
+
+- Not by a developer clicking around in the UI.  
+- Not by Copilot improvising at runtime.  
+
+### Why
+This ensures governance is:
+- **Governed** → Created via the Governance Factory submodule, never ad-hoc.  
+- **Repeatable** → Configs live in version control (`/governance/` folder).  
+- **Traceable** → Audit trails prove compliance (CMMI, SOX, GDPR).  
+
+## Copilot’s Role
+- Help draft **configs, templates, and JSON/YAML mappings** that the Governance Factory consumes.  
+- Suggest standard Issue/Project patterns, but never create them directly.  
+- Assist in scaffolding workflows and parsing logic, but leave execution to the Factory.  
+
+## Governance Factory’s Role
+- Read `/docs/specs` and `/docs/conversations`.  
+- Parse into Epics → Features → Tasks.  
+- Create Projects, Issues, Milestones, and Labels using GitHub API.  
+- Maintain compliance dashboards and audit trails.  
+
+## Golden Reminder
+> **Every Project and Issue you see was created by our Governance Factory,  
+> not by a developer or an AI improvising at runtime.  
+> It’s governed, repeatable, and traceable — and you can see the config in Git.**
