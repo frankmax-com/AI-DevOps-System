@@ -1,0 +1,63 @@
+# Prometheus Configuration for Database Governance Factory
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "governance_alerts.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Database Governance API
+  - job_name: 'governance-api'
+    static_configs:
+      - targets: ['governance-api:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # MongoDB Metrics
+  - job_name: 'mongodb-exporter'
+    static_configs:
+      - targets: ['mongodb-exporter:9216']
+    scrape_interval: 30s
+
+  # PostgreSQL Metrics
+  - job_name: 'postgresql-exporter'
+    static_configs:
+      - targets: ['postgresql-exporter:9187']
+    scrape_interval: 30s
+
+  # Redis Metrics
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  # Node Exporter for System Metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+  # Governance Services Health
+  - job_name: 'governance-health'
+    static_configs:
+      - targets: 
+        - 'governance-mongodb:27017'
+        - 'governance-postgresql:5432'
+        - 'governance-redis:6379'
+    metrics_path: '/health'
+    scrape_interval: 60s
+
+  # Container Metrics
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['host.docker.internal:9323']
+    scrape_interval: 30s

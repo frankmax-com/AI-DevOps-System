@@ -384,3 +384,5 @@ This ensures governance is:
 > **Every Project and Issue you see was created by our Governance Factory,  
 > not by a developer or an AI improvising at runtime.  
 > It’s governed, repeatable, and traceable — and you can see the config in Git.**
+
+

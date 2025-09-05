@@ -1,0 +1,52 @@
+# Test-specific Dockerfile for Database Governance Factory
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies for testing
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install additional test dependencies
+RUN pip install --no-cache-dir \
+    pytest==7.4.3 \
+    pytest-asyncio==0.21.1 \
+    pytest-cov==4.1.0 \
+    pytest-benchmark==4.0.0 \
+    pytest-xdist==3.3.1 \
+    pytest-mock==3.12.0 \
+    httpx==0.25.2 \
+    faker==20.1.0 \
+    factory-boy==3.3.0 \
+    responses==0.24.1
+
+# Copy source code
+COPY src/ src/
+COPY tests/ tests/
+COPY test_system.py .
+COPY config/ config/
+
+# Create test directories
+RUN mkdir -p test_logs test_results
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Health check for test container
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)"
+
+# Default command runs all tests
+CMD ["python", "-m", "pytest", "tests/", "-v", "--tb=short"]
