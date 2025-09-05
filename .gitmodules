@@ -7,3 +7,6 @@
 [submodule "azure-devops-governance-factory"]
 	path = azure-devops-governance-factory
 	url = https://github.com/frankmax-com/azure-devops-governance-factory.git
+[submodule "database-governance-factory"]
+	path = database-governance-factory
+	url = https://github.com/frankmax-com/database-governance-factory.git
