@@ -7,9 +7,10 @@ pydantic==2.5.0
 pydantic-settings==2.1.0
 
 # Database Drivers
-motor==3.3.2
+motor==3.1.2
+pymongo==4.3.3
 asyncpg==0.29.0
-aioredis==2.0.1
+redis==5.0.1
 azure-cosmos==4.5.1
 azure-storage-blob==12.19.0
 
@@ -44,7 +45,7 @@ structlog==23.2.0
 colorama==0.4.6
 
 # Backup & Storage
-cryptography==41.0.8
+cryptography>=41.0.0,<42.0.0
 
 # Utilities
 tenacity==8.2.3

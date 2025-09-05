@@ -13,13 +13,13 @@ import pickle
 from urllib.parse import urlparse
 
 try:
-    import aioredis
-    from aioredis import Redis
+    import redis.asyncio as redis
+    from redis.asyncio import Redis
 except ImportError:
-    # Fallback for different aioredis versions
+    # Fallback for different redis versions
     try:
-        import aioredis
-        Redis = aioredis.Redis
+        import redis
+        from redis import Redis
     except:
         Redis = None
 
@@ -55,7 +55,7 @@ class RedisWrapper(BaseDatabaseWrapper, DatabaseWrapperMixin):
                 connection_options['ssl'] = True
             
             # Create Redis client
-            self.redis_client = aioredis.from_url(
+            self.redis_client = redis.from_url(
                 self.config.connection_string,
                 **connection_options
             )
