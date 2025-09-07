@@ -6,7 +6,7 @@ python-multipart>=0.0.6
 
 # Authentication and security
 PyJWT>=2.8.0
-cryptography>=41.0.0
+cryptography>=42.0.0
 python-jose[cryptography]>=3.3.0
 
 # Async and networking
