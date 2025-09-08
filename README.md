@@ -1,6 +1,8 @@
 # 🚀 AI DevOps Autonomous Development Platform
 
-## 📊 **Executive Dashboard** (Updated: September 3, 2025)
+> **🐳 Quick Start**: Run `.\quick-start.bat` (Windows) or `./start-docker.sh` (Linux/Mac) to launch the complete AI DevOps system in Docker containers!
+
+## 📊 **Executive Dashboard** (Updated: September 7, 2025)
 
 [![Orchestrator Service](https://img.shields.io/badge/Orchestrator-✅%20Complete-green)](./orchestrator-service)
 [![Dev Agent](https://img.shields.io/badge/Dev%20Agent-🚧%20In%20Progress-yellow)](./dev-agent-service) 
@@ -323,7 +325,28 @@ This repository demonstrates something unprecedented in enterprise software: **g
 
 ## 🚀 **Getting Started**
 
-### **For Developers**
+### **🐳 Docker Quick Start (Recommended)**
+```bash
+# Windows
+.\quick-start.bat
+
+# Linux/Mac
+./start-docker.sh
+
+# Manual Docker start
+docker-compose up -d
+```
+
+**Service URLs after startup:**
+- Controller Service API: http://localhost:8000/docs
+- GitHub Governance API: http://localhost:8001/docs
+- Azure Governance API: http://localhost:8002/docs
+- AI Provider API: http://localhost:8003/docs
+- Database Governance API: http://localhost:8004/docs
+- Prometheus: http://localhost:9091
+- Grafana: http://localhost:3001 (admin/admin)
+
+### **For Developers (Local Development)**
 ```bash
 # Clone with all submodules
 git clone --recurse-submodules https://github.com/frankmax-com/AI-DevOps-System.git

@@ -1,0 +1,226 @@
+# PostgreSQL ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: database
+data:
+  POSTGRES_DB: "ai_devops"
+  POSTGRES_USER: "ai_devops_user"
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  # PostgreSQL configuration
+  postgresql.conf: |
+    # Memory Settings
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    maintenance_work_mem = 64MB
+    checkpoint_completion_target = 0.9
+    wal_buffers = 16MB
+    default_statistics_target = 100
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+    
+    # Connection Settings
+    max_connections = 200
+    
+    # Logging
+    logging_collector = on
+    log_directory = 'pg_log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_statement = 'all'
+    log_duration = on
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    
+    # Security
+    ssl = on
+    ssl_cert_file = 'server.crt'
+    ssl_key_file = 'server.key'
+    
+    # Replication
+    wal_level = replica
+    max_wal_senders = 3
+    max_replication_slots = 3
+---
+# MongoDB ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-config
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: database
+data:
+  MONGO_INITDB_DATABASE: "ai_devops"
+  MONGO_HOST: "mongodb-service"
+  MONGO_PORT: "27017"
+  # MongoDB configuration
+  mongod.conf: |
+    storage:
+      dbPath: /data/db
+      journal:
+        enabled: true
+      wiredTiger:
+        engineConfig:
+          cacheSizeGB: 0.5
+          journalCompressor: snappy
+          directoryForIndexes: false
+        collectionConfig:
+          blockCompressor: snappy
+        indexConfig:
+          prefixCompression: true
+    
+    systemLog:
+      destination: file
+      logAppend: true
+      path: /var/log/mongodb/mongod.log
+      verbosity: 1
+    
+    net:
+      port: 27017
+      bindIp: 0.0.0.0
+      maxIncomingConnections: 200
+      wireObjectCheck: true
+      compression:
+        compressors: snappy,zstd,zlib
+    
+    processManagement:
+      timeZoneInfo: /usr/share/zoneinfo
+      fork: false
+    
+    security:
+      authorization: enabled
+      clusterAuthMode: keyFile
+      keyFile: /etc/mongodb/mongodb-keyfile
+    
+    replication:
+      replSetName: "ai-devops-replica-set"
+---
+# Redis ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: cache
+data:
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  # Redis configuration
+  redis.conf: |
+    # Network
+    bind 0.0.0.0
+    port 6379
+    timeout 300
+    keepalive 60
+    
+    # General
+    daemonize no
+    supervised no
+    pidfile /var/run/redis_6379.pid
+    loglevel notice
+    logfile ""
+    databases 16
+    
+    # Snapshotting
+    save 900 1
+    save 300 10
+    save 60 10000
+    stop-writes-on-bgsave-error yes
+    rdbcompression yes
+    rdbchecksum yes
+    dbfilename dump.rdb
+    dir /data
+    
+    # Replication
+    replica-serve-stale-data yes
+    replica-read-only yes
+    repl-diskless-sync no
+    repl-diskless-sync-delay 5
+    
+    # Security
+    requirepass changeme123
+    
+    # Memory Management
+    maxmemory 512mb
+    maxmemory-policy allkeys-lru
+    
+    # AOF
+    appendonly yes
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    aof-load-truncated yes
+    
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+    
+    # Client output buffer limits
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+---
+# Application ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-devops-config
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: application
+data:
+  # Environment
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+  
+  # Controller Service
+  CONTROLLER_HOST: "0.0.0.0"
+  CONTROLLER_PORT: "8000"
+  CONTROLLER_WORKERS: "4"
+  
+  # Governance Factory Services
+  AZURE_DEVOPS_GOVERNANCE_HOST: "0.0.0.0"
+  AZURE_DEVOPS_GOVERNANCE_PORT: "8001"
+  GITHUB_GOVERNANCE_HOST: "0.0.0.0"
+  GITHUB_GOVERNANCE_PORT: "8002"
+  DATABASE_GOVERNANCE_HOST: "0.0.0.0"
+  DATABASE_GOVERNANCE_PORT: "8003"
+  AI_PROVIDER_HOST: "0.0.0.0"
+  AI_PROVIDER_PORT: "8004"
+  
+  # Monitoring
+  PROMETHEUS_HOST: "0.0.0.0"
+  PROMETHEUS_PORT: "9090"
+  GRAFANA_HOST: "0.0.0.0"
+  GRAFANA_PORT: "3000"
+  
+  # Security
+  ENABLE_SECURITY_GATES: "true"
+  ENABLE_AUDIT_LOGGING: "true"
+  ENABLE_EPHEMERAL_TOKENS: "true"
+  TOKEN_EXPIRY_MINUTES: "30"
+  
+  # Resource Limits
+  MAX_TENANTS_PER_NODE: "10"
+  MAX_CONCURRENT_OPERATIONS: "50"
+  OPERATION_TIMEOUT_SECONDS: "300"
+  
+  # Health Check
+  HEALTH_CHECK_INTERVAL: "30"
+  HEALTH_CHECK_TIMEOUT: "10"
+  HEALTH_CHECK_RETRIES: "3"
+  
+  # Backup
+  BACKUP_ENABLED: "true"
+  BACKUP_SCHEDULE: "0 2 * * *"  # Daily at 2 AM
+  BACKUP_RETENTION_DAYS: "30"

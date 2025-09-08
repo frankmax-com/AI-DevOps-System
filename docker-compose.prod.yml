@@ -1,0 +1,544 @@
+version: '3.8'
+
+services:
+  # Production Controller Service with High Availability
+  controller-service:
+    image: ${CONTAINER_REGISTRY}/ai-devops/controller-service:${VERSION:-latest}
+    ports:
+      - "8000:8000"
+      - "9090:9090"  # Prometheus metrics
+    environment:
+      - ENV=production
+      - LOG_LEVEL=INFO
+      - DEBUG=false
+      - REDIS_URL=redis://redis-cluster:6379
+      - POSTGRES_URL=${POSTGRES_CONNECTION_STRING}
+      - MONGODB_URL=${MONGODB_CONNECTION_STRING}
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - GITHUB_GOVERNANCE_URL=http://github-governance:8001
+      - AZURE_GOVERNANCE_URL=http://azure-governance:8002
+      - AI_PROVIDER_URL=http://ai-provider:8003
+      - DATABASE_GOVERNANCE_URL=http://database-governance:8004
+      - MAX_WORKERS=4
+      - TIMEOUT=300
+    secrets:
+      - github_token
+      - azure_devops_token
+      - openai_api_key
+      - database_password
+    volumes:
+      - controller_logs:/app/logs
+      - audit_data:/app/audit
+    deploy:
+      mode: replicated
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 60s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+      placement:
+        constraints:
+          - node.role == worker
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - ai-devops-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # GitHub Governance Factory - Production Grade
+  github-governance:
+    image: ${CONTAINER_REGISTRY}/ai-devops/github-governance:${VERSION:-latest}
+    ports:
+      - "8001:8001"
+    environment:
+      - ENV=production
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis-cluster:6379/1
+      - RATE_LIMIT_REQUESTS=1000
+      - RATE_LIMIT_PERIOD=3600
+      - GITHUB_API_VERSION=2022-11-28
+    secrets:
+      - github_token
+    volumes:
+      - github_logs:/app/logs
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - ai-devops-network
+
+  # Azure DevOps Governance Factory - Production Grade
+  azure-governance:
+    image: ${CONTAINER_REGISTRY}/ai-devops/azure-governance:${VERSION:-latest}
+    ports:
+      - "8002:8002"
+    environment:
+      - ENV=production
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis-cluster:6379/2
+      - POSTGRES_URL=${POSTGRES_CONNECTION_STRING}
+      - AZURE_API_VERSION=7.1-preview
+    secrets:
+      - azure_devops_token
+      - database_password
+    volumes:
+      - azure_logs:/app/logs
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - ai-devops-network
+
+  # AI Provider Factory - Production Grade
+  ai-provider:
+    image: ${CONTAINER_REGISTRY}/ai-devops/ai-provider:${VERSION:-latest}
+    ports:
+      - "8003:8003"
+    environment:
+      - ENV=production
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis-cluster:6379/3
+      - OPENAI_MODEL=gpt-4
+      - MAX_TOKENS=4000
+      - TEMPERATURE=0.1
+    secrets:
+      - openai_api_key
+    volumes:
+      - ai_logs:/app/logs
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 3G
+        reservations:
+          cpus: '1.0'
+          memory: 1.5G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - ai-devops-network
+
+  # Database Governance Factory - Production Grade
+  database-governance:
+    image: ${CONTAINER_REGISTRY}/ai-devops/database-governance:${VERSION:-latest}
+    ports:
+      - "8004:8004"
+    environment:
+      - ENV=production
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis-cluster:6379/4
+      - POSTGRES_URL=${POSTGRES_CONNECTION_STRING}
+      - MONGODB_URL=${MONGODB_CONNECTION_STRING}
+      - CONNECTION_POOL_SIZE=20
+      - QUERY_TIMEOUT=30
+    secrets:
+      - database_password
+    volumes:
+      - database_logs:/app/logs
+    deploy:
+      mode: replicated
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - ai-devops-network
+
+  # Redis Cluster for Production
+  redis-cluster:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000
+    ports:
+      - "6379:6379"
+      - "16379:16379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    deploy:
+      mode: replicated
+      replicas: 3
+      placement:
+        constraints:
+          - node.role == worker
+        preferences:
+          - spread: node.labels.zone
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "redis-cli", "--cluster", "check", "localhost:6379"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ai-devops-network
+
+  # Production Postgres (External in production, this is for testing)
+  postgres-primary:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=ai_devops_prod
+      - POSTGRES_USER=aidevops
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_REPLICATION_MODE=master
+      - POSTGRES_REPLICATION_USER=replicator
+      - POSTGRES_REPLICATION_PASSWORD=${POSTGRES_REPLICATION_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database-governance-factory/init-scripts/postgresql:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aidevops -d ai_devops_prod"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ai-devops-network
+
+  # Production MongoDB (External in production, this is for testing)
+  mongodb-primary:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=aidevops
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+      - MONGO_INITDB_DATABASE=ai_devops_prod
+    volumes:
+      - mongodb_data:/data/db
+      - ./database-governance-factory/init-scripts/mongodb:/docker-entrypoint-initdb.d
+    ports:
+      - "27017:27017"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/ai_devops_prod --quiet
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - ai-devops-network
+
+  # Production Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus-prod.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/alert-rules.yml:/etc/prometheus/alert-rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=720h'  # 30 days
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    deploy:
+      mode: replicated
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    networks:
+      - ai-devops-network
+
+  # Production Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
+      - GF_SECURITY_SECRET_KEY=${GRAFANA_SECRET_KEY}
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres-primary:5432
+      - GF_DATABASE_NAME=grafana
+      - GF_DATABASE_USER=grafana
+      - GF_DATABASE_PASSWORD=${GRAFANA_DB_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana-prod:/etc/grafana/provisioning
+    deploy:
+      mode: replicated
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      - prometheus
+      - postgres-primary
+    networks:
+      - ai-devops-network
+
+  # Load Balancer / Reverse Proxy
+  nginx-lb:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/prod-nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl-certs:/etc/nginx/ssl
+      - nginx_logs:/var/log/nginx
+    deploy:
+      mode: replicated
+      replicas: 2
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    depends_on:
+      - controller-service
+      - github-governance
+      - azure-governance
+      - ai-provider
+      - database-governance
+    networks:
+      - ai-devops-network
+
+  # Log Aggregator (Fluentd)
+  fluentd:
+    image: fluent/fluentd:latest
+    volumes:
+      - ./logging/fluent.conf:/fluentd/etc/fluent.conf
+      - controller_logs:/var/log/controller
+      - github_logs:/var/log/github
+      - azure_logs:/var/log/azure
+      - ai_logs:/var/log/ai
+      - database_logs:/var/log/database
+      - nginx_logs:/var/log/nginx
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    networks:
+      - ai-devops-network
+
+# Production Secrets (Managed externally in production)
+secrets:
+  github_token:
+    external: true
+    name: ai_devops_github_token
+  azure_devops_token:
+    external: true
+    name: ai_devops_azure_token
+  openai_api_key:
+    external: true
+    name: ai_devops_openai_key
+  database_password:
+    external: true
+    name: ai_devops_db_password
+
+# Production Volumes
+volumes:
+  redis_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER},rw
+      device: ":/data/redis"
+  
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER},rw
+      device: ":/data/postgres"
+  
+  mongodb_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER},rw
+      device: ":/data/mongodb"
+  
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER},rw
+      device: ":/data/prometheus"
+  
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER},rw
+      device: ":/data/grafana"
+  
+  controller_logs:
+    driver: local
+  github_logs:
+    driver: local
+  azure_logs:
+    driver: local
+  ai_logs:
+    driver: local
+  database_logs:
+    driver: local
+  nginx_logs:
+    driver: local
+  audit_data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=${NFS_SERVER},rw
+      device: ":/data/audit"
+
+# Production Network
+networks:
+  ai-devops-network:
+    driver: overlay
+    attachable: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    labels:
+      - "environment=production"
+      - "project=ai-devops"

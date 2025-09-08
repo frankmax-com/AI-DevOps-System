@@ -1,0 +1,235 @@
+version: '3.8'
+
+services:
+  # Controller Service - Main orchestration service
+  controller-service:
+    build: ./controller-service
+    ports:
+      - "8000:8000"
+      - "9090:9090"  # Prometheus metrics
+    environment:
+      - CONTROLLER_SERVICE_PORT=8000
+      - LOG_LEVEL=INFO
+      - DEBUG=true
+      - GITHUB_GOVERNANCE_URL=http://github-governance:8001
+      - AZURE_GOVERNANCE_URL=http://azure-governance:8002
+      - AI_PROVIDER_GOVERNANCE_URL=http://ai-provider:8003
+      - DATABASE_GOVERNANCE_URL=http://database-governance:8004
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # For agent spawning
+      - ./controller-service/logs:/app/logs
+    depends_on:
+      - redis
+      - github-governance
+      - azure-governance
+      - ai-provider
+      - database-governance
+    networks:
+      - ai-devops-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # GitHub Governance Factory
+  github-governance:
+    build: ./github-governance-factory
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis:6379/1
+    env_file:
+      - ./github-governance-factory/.env
+    depends_on:
+      - redis
+    networks:
+      - ai-devops-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Azure DevOps Governance Factory  
+  azure-governance:
+    build: ./azure-devops-governance-factory
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis:6379/2
+    env_file:
+      - ./azure-devops-governance-factory/.env
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - ai-devops-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # AI Provider Governance Factory
+  ai-provider:
+    build: ./ai-provider-factory
+    ports:
+      - "8003:8003"
+    environment:
+      - PORT=8003
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis:6379/3
+    env_file:
+      - ./ai-provider-factory/.env
+    depends_on:
+      - redis
+    networks:
+      - ai-devops-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Database Governance Factory
+  database-governance:
+    build: ./database-governance-factory
+    ports:
+      - "8004:8004"
+    environment:
+      - PORT=8004
+      - LOG_LEVEL=INFO
+      - REDIS_URL=redis://redis:6379/4
+      - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/governance
+      - MONGODB_URL=mongodb://mongo:27017/governance
+    env_file:
+      - ./database-governance-factory/.env
+    depends_on:
+      - redis
+      - postgres
+      - mongo
+    networks:
+      - ai-devops-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis - Shared cache and session store
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ai-devops-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # PostgreSQL - Primary database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=governance
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database-governance-factory/init-scripts/postgresql:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - ai-devops-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # MongoDB - Document store
+  mongo:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin
+      - MONGO_INITDB_DATABASE=governance
+    volumes:
+      - mongo_data:/data/db
+      - ./database-governance-factory/init-scripts/mongodb:/docker-entrypoint-initdb.d
+    ports:
+      - "27017:27017"
+    networks:
+      - ai-devops-network
+    restart: unless-stopped
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - ai-devops-network
+    restart: unless-stopped
+
+  # Grafana - Metrics visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - ai-devops-network
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  postgres_data:
+  mongo_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  ai-devops-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
