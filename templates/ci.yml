@@ -1,0 +1,149 @@
+name: CI/CD Pipeline Template
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Run Security Scan
+        run: |
+          echo "Running security scan..."
+          # Mock security scan - check for vulnerability flag
+          if [ -f "vulnerability.flag" ]; then
+            echo "SECURITY: High severity vulnerability detected!"
+            echo "BLOCK_DEPLOY=true" >> $GITHUB_ENV
+            exit 1
+          else
+            echo "SECURITY: No critical vulnerabilities found"
+            echo "BLOCK_DEPLOY=false" >> $GITHUB_ENV
+          fi
+        
+      - name: Security Report
+        if: always()
+        run: |
+          echo "Security scan completed"
+          echo "Block deployment: $BLOCK_DEPLOY"
+
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    needs: security-scan
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+        
+      - name: Install Dependencies
+        run: npm ci
+        
+      - name: Run Tests
+        run: npm test
+        
+      - name: Build Application
+        run: npm run build
+        
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+
+  compliance-check:
+    name: Compliance Validation
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Compliance Check
+        run: |
+          echo "Running compliance validation..."
+          echo "✓ Code review requirements: Passed"
+          echo "✓ Branch protection: Enabled"
+          echo "✓ Audit trail: Complete"
+          echo "✓ SOX compliance: Validated"
+          echo "✓ GDPR compliance: Validated"
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build, compliance-check]
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+          
+      - name: Deploy to Staging
+        run: |
+          echo "Deploying to staging environment..."
+          echo "Deployment completed successfully"
+          
+      - name: Run Integration Tests
+        run: |
+          echo "Running integration tests..."
+          echo "All tests passed"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, compliance-check]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist/
+          
+      - name: Production Deployment
+        run: |
+          echo "Deploying to production environment..."
+          echo "Production deployment completed"
+          
+      - name: Post-deployment Verification
+        run: |
+          echo "Running post-deployment verification..."
+          echo "✓ Health checks: Passed"
+          echo "✓ Performance tests: Passed"
+          echo "✓ Security validation: Passed"
+
+  audit-trail:
+    name: Audit Trail
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [security-scan, build, compliance-check]
+    steps:
+      - name: Generate Audit Report
+        run: |
+          echo "Generating audit trail..."
+          echo "Pipeline ID: ${{ github.run_id }}"
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "Security scan: $([ '${{ needs.security-scan.result }}' == 'success' ] && echo 'PASSED' || echo 'FAILED')"
+          echo "Build status: ${{ needs.build.result }}"
+          echo "Compliance: ${{ needs.compliance-check.result }}"

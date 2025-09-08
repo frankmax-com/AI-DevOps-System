@@ -1,0 +1,313 @@
+# Ingress Controller for AI DevOps System
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-devops-ingress
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: ingress
+  annotations:
+    # NGINX Ingress Controller Annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    nginx.ingress.kubernetes.io/proxy-buffering: "on"
+    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
+    
+    # Rate Limiting
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit-connections: "10"
+    
+    # CORS Headers
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://ai-devops.com,https://admin.ai-devops.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    nginx.ingress.kubernetes.io/cors-max-age: "86400"
+    
+    # Security Headers
+    nginx.ingress.kubernetes.io/server-snippet: |
+      add_header X-Frame-Options "SAMEORIGIN" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; media-src 'self'; object-src 'none'; child-src 'none'; frame-src 'none'; worker-src 'none'; frame-ancestors 'self'; form-action 'self'; base-uri 'self';" always;
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    
+    # Load Balancing
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+    nginx.ingress.kubernetes.io/session-cookie-name: "ai-devops-session"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "86400"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "86400"
+    nginx.ingress.kubernetes.io/session-cookie-path: "/"
+    
+    # Certificate Manager (if using cert-manager)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/acme-challenge-type: "http01"
+    
+    # Custom Health Check
+    nginx.ingress.kubernetes.io/health-check-path: "/health"
+    nginx.ingress.kubernetes.io/health-check-interval: "30s"
+    nginx.ingress.kubernetes.io/health-check-timeout: "10s"
+    
+spec:
+  # TLS Configuration
+  tls:
+  - hosts:
+    - ai-devops.com
+    - api.ai-devops.com
+    - admin.ai-devops.com
+    - monitoring.ai-devops.com
+    secretName: ai-devops-tls
+  
+  rules:
+  # Main Application Domain
+  - host: ai-devops.com
+    http:
+      paths:
+      - path: /(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: controller-service
+            port:
+              number: 8000
+  
+  # API Domain
+  - host: api.ai-devops.com
+    http:
+      paths:
+      # Controller API
+      - path: /api/v1/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: controller-service
+            port:
+              number: 8000
+      
+      # Azure DevOps Governance API
+      - path: /api/v1/azure-devops/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: azure-devops-governance-service
+            port:
+              number: 8001
+      
+      # GitHub Governance API
+      - path: /api/v1/github/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: github-governance-service
+            port:
+              number: 8002
+      
+      # Database Governance API
+      - path: /api/v1/database/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: database-governance-service
+            port:
+              number: 8003
+      
+      # AI Provider API
+      - path: /api/v1/ai-provider/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-provider-service
+            port:
+              number: 8004
+  
+  # Admin Dashboard Domain
+  - host: admin.ai-devops.com
+    http:
+      paths:
+      - path: /(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: controller-service
+            port:
+              number: 8000
+  
+  # Monitoring Domain
+  - host: monitoring.ai-devops.com
+    http:
+      paths:
+      # Grafana Dashboard
+      - path: /grafana/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana-service
+            port:
+              number: 3000
+      
+      # Prometheus (Admin Access Only)
+      - path: /prometheus/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: prometheus-service
+            port:
+              number: 9090
+---
+# Additional Ingress for Internal Services (Optional)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-devops-internal-ingress
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: ingress-internal
+  annotations:
+    nginx.ingress.kubernetes.io/whitelist-source-range: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+    nginx.ingress.kubernetes.io/auth-type: "basic"
+    nginx.ingress.kubernetes.io/auth-secret: "ai-devops-basic-auth"
+    nginx.ingress.kubernetes.io/auth-realm: "AI DevOps Internal Services"
+spec:
+  tls:
+  - hosts:
+    - internal.ai-devops.com
+    secretName: ai-devops-internal-tls
+  
+  rules:
+  - host: internal.ai-devops.com
+    http:
+      paths:
+      # Direct Service Access (for debugging)
+      - path: /controller/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: controller-service
+            port:
+              number: 8000
+      
+      - path: /azure-devops/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: azure-devops-governance-service
+            port:
+              number: 8001
+      
+      - path: /github/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: github-governance-service
+            port:
+              number: 8002
+      
+      - path: /database/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: database-governance-service
+            port:
+              number: 8003
+      
+      - path: /ai-provider/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-provider-service
+            port:
+              number: 8004
+      
+      # Database Management (Admin Only)
+      - path: /postgres/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: postgres-service
+            port:
+              number: 5432
+      
+      - path: /mongodb/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: mongodb-service
+            port:
+              number: 27017
+      
+      - path: /redis/(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: redis-service
+            port:
+              number: 6379
+---
+# HTTP to HTTPS Redirect Ingress
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-devops-redirect-ingress
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: ingress-redirect
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/permanent-redirect: "https://$host$request_uri"
+spec:
+  rules:
+  - host: ai-devops.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: controller-service
+            port:
+              number: 8000
+  - host: api.ai-devops.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: controller-service
+            port:
+              number: 8000
+  - host: admin.ai-devops.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: controller-service
+            port:
+              number: 8000
+  - host: monitoring.ai-devops.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grafana-service
+            port:
+              number: 3000

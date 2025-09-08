@@ -1,0 +1,243 @@
+"""
+Role Templates for AI DevOps Autonomous Startup Factory
+Defines role-based permissions and approval requirements
+"""
+
+roles:
+  # GitHub Roles
+  github_bootstrap:
+    name: "GitHub Bootstrap Agent"
+    description: "Creates GitHub organization, repositories, teams, and workflows"
+    platform: "github"
+    scopes:
+      - "admin:org"
+      - "repo"
+      - "write:org"
+      - "admin:repo_hook"
+      - "write:discussion"
+    ttl_minutes: 45
+    approval_required: false
+    auto_revoke: true
+
+  repo_creator:
+    name: "Repository Creator"
+    description: "Creates and configures repositories"
+    platform: "github"
+    scopes:
+      - "repo"
+      - "write:org"
+    ttl_minutes: 30
+    approval_required: false
+    auto_revoke: true
+
+  team_admin:
+    name: "Team Administrator"
+    description: "Manages teams and team permissions"
+    platform: "github"
+    scopes:
+      - "admin:org"
+      - "write:team"
+    ttl_minutes: 30
+    approval_required: false
+    auto_revoke: true
+
+  # Azure DevOps Roles
+  project_owner:
+    name: "Azure DevOps Project Owner"
+    description: "Creates and manages Azure DevOps projects"
+    platform: "azure_devops"
+    scopes:
+      - "vso.project_manage"
+      - "vso.work_write"
+      - "vso.code_write"
+      - "vso.build_write"
+    ttl_minutes: 60
+    approval_required: true  # High-privilege role
+    auto_revoke: true
+
+  repo_admin:
+    name: "Repository Administrator"
+    description: "Manages repositories and code"
+    platform: "azure_devops"
+    scopes:
+      - "vso.code_manage"
+      - "vso.build_execute"
+    ttl_minutes: 45
+    approval_required: false
+    auto_revoke: true
+
+  pipeline_admin:
+    name: "Pipeline Administrator"
+    description: "Creates and manages build/release pipelines"
+    platform: "azure_devops"
+    scopes:
+      - "vso.build_write"
+      - "vso.release_write"
+      - "vso.serviceendpoint_write"
+    ttl_minutes: 45
+    approval_required: true  # Can create service connections
+    auto_revoke: true
+
+  # AI Agent Persona Roles
+  founder:
+    name: "Founder Agent"
+    description: "Strategic planning and business analysis"
+    platform: "ai"
+    scopes:
+      - "ai:reasoning"
+      - "ai:analysis"
+      - "ai:writing"
+      - "db:tenant:config:write"
+      - "db:business:metrics:read"
+    ttl_minutes: 120  # Longer for strategic work
+    approval_required: false
+    auto_revoke: true
+
+  dev:
+    name: "Developer Agent"
+    description: "Code development and technical implementation"
+    platform: "multi"
+    scopes:
+      - "azure:project:create"
+      - "azure:repo:write"
+      - "azure:pipeline:write"
+      - "azure:workitem:write"
+      - "github:repo:write"
+      - "github:pr:create"
+      - "ai:code:analysis"
+    ttl_minutes: 90
+    approval_required: false
+    auto_revoke: true
+
+  ops:
+    name: "Operations Agent"
+    description: "Infrastructure and deployment operations"
+    platform: "multi"
+    scopes:
+      - "azure:pipeline:manage"
+      - "azure:serviceconnection:create"
+      - "azure:agentpool:manage"
+      - "azure:monitoring:write"
+      - "ai:infrastructure:optimization"
+    ttl_minutes: 60
+    approval_required: true  # Can create service connections
+    auto_revoke: true
+
+  security:
+    name: "Security Agent"
+    description: "Security scanning and compliance validation"
+    platform: "multi"
+    scopes:
+      - "azure:security:scan"
+      - "azure:compliance:validate"
+      - "azure:policy:enforce"
+      - "github:security:read"
+      - "github:vulnerability:write"
+      - "ai:security:analysis"
+    ttl_minutes: 60
+    approval_required: false
+    auto_revoke: true
+
+  finance:
+    name: "Finance Agent"
+    description: "Cost tracking and budget management"
+    platform: "multi"
+    scopes:
+      - "db:cost:tracking:write"
+      - "db:budget:read"
+      - "azure:usage:read"
+      - "ai:cost:optimization"
+    ttl_minutes: 60
+    approval_required: false
+    auto_revoke: true
+
+# Approval Workflows
+approval_workflows:
+  high_privilege_operations:
+    description: "Operations requiring elevated permissions"
+    triggers:
+      - role_template: "project_owner"
+      - role_template: "pipeline_admin"
+      - role_template: "ops"
+      - scope_contains: "serviceconnection"
+      - scope_contains: "agentpool"
+    approval_required: true
+    auto_approve_conditions:
+      - tenant_id_matches: "poc-*"  # Auto-approve for POC tenants
+      - environment: "development"
+    approvers:
+      - "system_admin"
+      - "security_lead"
+    timeout_minutes: 30
+
+  service_connections:
+    description: "Service connection creation"
+    triggers:
+      - action: "create_service_connection"
+      - scope_contains: "serviceconnection"
+    approval_required: true
+    auto_approve_conditions:
+      - tenant_id_matches: "poc-*"
+    approvers:
+      - "devops_lead"
+      - "security_lead"
+    timeout_minutes: 60
+
+  organization_changes:
+    description: "Changes affecting entire organization"
+    triggers:
+      - action: "create_organization"
+      - action: "modify_organization"
+      - scope_contains: "admin:org"
+    approval_required: true
+    auto_approve_conditions: []  # Never auto-approve
+    approvers:
+      - "organization_owner"
+      - "compliance_officer"
+    timeout_minutes: 240
+
+# Security Constraints
+security_constraints:
+  token_lifetime:
+    max_ttl_minutes: 240  # 4 hours maximum
+    default_ttl_minutes: 30
+    high_privilege_max_ttl: 60
+
+  scope_restrictions:
+    never_combine:
+      - ["admin:org", "delete:org"]
+      - ["vso.project_manage", "vso.project_delete"]
+    
+    require_approval:
+      - "admin:org"
+      - "vso.project_manage"
+      - "vso.serviceendpoint_write"
+
+  audit_requirements:
+    always_audit:
+      - "mint_token"
+      - "revoke_token"
+      - "create_repository"
+      - "create_project"
+      - "create_service_connection"
+    
+    sensitive_operations:
+      - "create_organization"
+      - "modify_permissions"
+      - "access_production"
+
+# POC Overrides
+poc_mode:
+  enabled: true
+  auto_approve_patterns:
+    - tenant_id: "acme-*"
+    - tenant_id: "poc-*"
+    - tenant_id: "*-test"
+  
+  mock_approvals:
+    enabled: true
+    default_approval_delay_seconds: 2
+    
+  audit_trail:
+    enabled: true
+    mock_hash_verification: true

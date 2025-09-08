@@ -1,0 +1,306 @@
+# PostgreSQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: database
+    service: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: ai-devops
+    component: database
+    service: postgres
+---
+# MongoDB Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-service
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: database
+    service: mongodb
+spec:
+  type: ClusterIP
+  ports:
+  - port: 27017
+    targetPort: 27017
+    protocol: TCP
+    name: mongodb
+  selector:
+    app: ai-devops
+    component: database
+    service: mongodb
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: cache
+    service: redis
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: redis
+  selector:
+    app: ai-devops
+    component: cache
+    service: redis
+---
+# Controller Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-service
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: controller
+    service: controller
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: controller
+    service: controller
+---
+# Azure DevOps Governance Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: azure-devops-governance-service
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: governance
+    service: azure-devops-governance
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8001
+    targetPort: 8001
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: governance
+    service: azure-devops-governance
+---
+# GitHub Governance Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: github-governance-service
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: governance
+    service: github-governance
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8002
+    targetPort: 8002
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: governance
+    service: github-governance
+---
+# Database Governance Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-governance-service
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: governance
+    service: database-governance
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8003
+    targetPort: 8003
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: governance
+    service: database-governance
+---
+# AI Provider Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-provider-service
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: ai-provider
+    service: ai-provider
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8004
+    targetPort: 8004
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: ai-provider
+    service: ai-provider
+---
+# Prometheus Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: monitoring
+    service: prometheus
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: monitoring
+    service: prometheus
+---
+# Grafana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: monitoring
+    service: grafana
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: monitoring
+    service: grafana
+---
+# Load Balancer Service for External Access
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-devops-loadbalancer
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: loadbalancer
+    service: external-access
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:region:account:certificate/cert-id"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  - port: 443
+    targetPort: 8000
+    protocol: TCP
+    name: https
+  selector:
+    app: ai-devops
+    component: controller
+    service: controller
+  externalTrafficPolicy: Local
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 300
+---
+# NodePort Service for Development/Testing
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-devops-nodeport
+  namespace: ai-devops-system
+  labels:
+    app: ai-devops
+    component: nodeport
+    service: development
+spec:
+  type: NodePort
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30000
+    protocol: TCP
+    name: controller
+  - port: 8001
+    targetPort: 8001
+    nodePort: 30001
+    protocol: TCP
+    name: azure-governance
+  - port: 8002
+    targetPort: 8002
+    nodePort: 30002
+    protocol: TCP
+    name: github-governance
+  - port: 8003
+    targetPort: 8003
+    nodePort: 30003
+    protocol: TCP
+    name: database-governance
+  - port: 8004
+    targetPort: 8004
+    nodePort: 30004
+    protocol: TCP
+    name: ai-provider
+  - port: 9090
+    targetPort: 9090
+    nodePort: 30090
+    protocol: TCP
+    name: prometheus
+  - port: 3000
+    targetPort: 3000
+    nodePort: 30300
+    protocol: TCP
+    name: grafana
+  selector:
+    app: ai-devops

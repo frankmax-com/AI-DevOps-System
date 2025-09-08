@@ -1,0 +1,227 @@
+# Prometheus Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-deployment
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: monitoring
+    service: prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-devops
+      component: monitoring
+      service: prometheus
+  template:
+    metadata:
+      labels:
+        app: ai-devops
+        component: monitoring
+        service: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: prom/prometheus:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9090
+          name: http
+          protocol: TCP
+        args:
+        - '--config.file=/etc/prometheus/prometheus.yml'
+        - '--storage.tsdb.path=/prometheus'
+        - '--web.console.libraries=/etc/prometheus/console_libraries'
+        - '--web.console.templates=/etc/prometheus/consoles'
+        - '--web.enable-lifecycle'
+        - '--log.level=info'
+        volumeMounts:
+        - name: prometheus-config
+          mountPath: /etc/prometheus/prometheus.yml
+          subPath: prometheus.yml
+        - name: prometheus-storage
+          mountPath: /prometheus
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+      volumes:
+      - name: prometheus-config
+        configMap:
+          name: prometheus-config
+      - name: prometheus-storage
+        emptyDir: {}
+---
+# Prometheus Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: monitoring
+    service: prometheus
+spec:
+  type: NodePort
+  ports:
+  - port: 9090
+    targetPort: 9090
+    nodePort: 30090
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: monitoring
+    service: prometheus
+---
+# Prometheus ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    scrape_configs:
+      # AI DevOps Controller Service
+      - job_name: 'ai-devops-controller'
+        static_configs:
+        - targets: ['controller-service:8000']
+        metrics_path: '/metrics'
+        scrape_interval: 10s
+
+      # AI DevOps Governance Services
+      - job_name: 'ai-devops-azure-governance'
+        static_configs:
+        - targets: ['azure-devops-governance-service:8001']
+        metrics_path: '/metrics'
+        scrape_interval: 15s
+
+      - job_name: 'ai-devops-github-governance'
+        static_configs:
+        - targets: ['github-governance-service:8002']
+        metrics_path: '/metrics'
+        scrape_interval: 15s
+
+      - job_name: 'ai-devops-database-governance'
+        static_configs:
+        - targets: ['database-governance-service:8003']
+        metrics_path: '/metrics'
+        scrape_interval: 15s
+
+      # Prometheus self-monitoring
+      - job_name: 'prometheus'
+        static_configs:
+        - targets: ['localhost:9090']
+---
+# Grafana Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-deployment
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: monitoring
+    service: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-devops
+      component: monitoring
+      service: grafana
+  template:
+    metadata:
+      labels:
+        app: ai-devops
+        component: monitoring
+        service: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        env:
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: "admin"
+        - name: GF_USERS_ALLOW_SIGN_UP
+          value: "false"
+        volumeMounts:
+        - name: grafana-storage
+          mountPath: /var/lib/grafana
+        - name: grafana-datasources
+          mountPath: /etc/grafana/provisioning/datasources
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+      volumes:
+      - name: grafana-storage
+        emptyDir: {}
+      - name: grafana-datasources
+        configMap:
+          name: grafana-datasources
+---
+# Grafana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: monitoring
+    service: grafana
+spec:
+  type: NodePort
+  ports:
+  - port: 3000
+    targetPort: 3000
+    nodePort: 30300
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: monitoring
+    service: grafana
+---
+# Grafana Datasources ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: monitoring
+data:
+  datasources.yml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus-service:9090
+      isDefault: true
+      editable: true
