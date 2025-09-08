@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: controller
-        image: controller-service:latest
+        image: simple-controller:latest
         imagePullPolicy: Never  # Use local image
         ports:
         - containerPort: 8000
@@ -165,7 +165,7 @@ spec:
     spec:
       containers:
       - name: azure-devops-governance
-        image: azure-devops-governance-factory-azure-devops-governance-factory:latest
+        image: test-service:latest
         imagePullPolicy: Never  # Use local image
         ports:
         - containerPort: 8001
@@ -274,7 +274,7 @@ spec:
     spec:
       containers:
       - name: github-governance
-        image: github-governance-factory:latest
+        image: test-service:latest
         imagePullPolicy: Never  # Use local image
         ports:
         - containerPort: 8002
