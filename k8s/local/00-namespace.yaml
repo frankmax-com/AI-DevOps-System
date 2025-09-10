@@ -1,0 +1,65 @@
+# AI DevOps Local Namespace and Basic Setup
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai-devops-local
+  labels:
+    name: ai-devops-local
+    environment: local
+---
+# ConfigMap for Local Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-devops-config
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    environment: local
+data:
+  # Environment
+  ENVIRONMENT: "local"
+  LOG_LEVEL: "DEBUG"
+  
+  # Database Configuration
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "ai_devops"
+  POSTGRES_USER: "ai_devops_user"
+  
+  MONGO_HOST: "mongodb-service"
+  MONGO_PORT: "27017"
+  MONGO_DB: "ai_devops"
+  
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  
+  # Service Configuration
+  CONTROLLER_HOST: "0.0.0.0"
+  CONTROLLER_PORT: "8000"
+  
+  AZURE_DEVOPS_GOVERNANCE_HOST: "0.0.0.0"
+  AZURE_DEVOPS_GOVERNANCE_PORT: "8001"
+  
+  GITHUB_GOVERNANCE_HOST: "0.0.0.0"
+  GITHUB_GOVERNANCE_PORT: "8002"
+  
+  DATABASE_GOVERNANCE_HOST: "0.0.0.0"
+  DATABASE_GOVERNANCE_PORT: "8003"
+---
+# Basic Secrets for Local Development
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ai-devops-secrets
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    environment: local
+type: Opaque
+data:
+  # Base64 encoded values for local development
+  POSTGRES_PASSWORD: YWlkZXZvcHNwYXNzd29yZA==  # aidevopspassword
+  MONGO_PASSWORD: YWlkZXZvcHNwYXNzd29yZA==     # aidevopspassword
+  REDIS_PASSWORD: YWlkZXZvcHNwYXNzd29yZA==     # aidevopspassword
+  JWT_SECRET_KEY: bG9jYWxkZXZlbG9wbWVudGp3dGtleQ== # localdevelopmentjwtkey

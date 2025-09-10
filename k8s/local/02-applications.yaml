@@ -1,0 +1,481 @@
+# Controller Service Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-deployment
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: controller
+    service: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-devops
+      component: controller
+      service: controller
+  template:
+    metadata:
+      labels:
+        app: ai-devops
+        component: controller
+        service: controller
+    spec:
+      containers:
+      - name: controller
+        image: controller-service:latest
+        imagePullPolicy: Never  # Use local image
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: CONTROLLER_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: CONTROLLER_HOST
+        - name: CONTROLLER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: CONTROLLER_PORT
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_HOST
+        - name: POSTGRES_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_PORT
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-devops-secrets
+              key: POSTGRES_PASSWORD
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: REDIS_PORT
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-devops-secrets
+              key: REDIS_PASSWORD
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-devops-secrets
+              key: JWT_SECRET_KEY
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: LOG_LEVEL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+---
+# Controller Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-service
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: controller
+    service: controller
+spec:
+  type: NodePort
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30000
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: controller
+    service: controller
+---
+# Azure DevOps Governance Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: azure-devops-governance-deployment
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: governance
+    service: azure-devops-governance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-devops
+      component: governance
+      service: azure-devops-governance
+  template:
+    metadata:
+      labels:
+        app: ai-devops
+        component: governance
+        service: azure-devops-governance
+    spec:
+      containers:
+      - name: azure-devops-governance
+        imagePullPolicy: Never  # Use local image
+        ports:
+        - containerPort: 8001
+          name: http
+          protocol: TCP
+        env:
+        - name: AZURE_DEVOPS_GOVERNANCE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: AZURE_DEVOPS_GOVERNANCE_HOST
+        - name: AZURE_DEVOPS_GOVERNANCE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: AZURE_DEVOPS_GOVERNANCE_PORT
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_HOST
+        - name: POSTGRES_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_PORT
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-devops-secrets
+              key: POSTGRES_PASSWORD
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: LOG_LEVEL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+---
+# Azure DevOps Governance Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: azure-devops-governance-service
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: governance
+    service: azure-devops-governance
+spec:
+  type: NodePort
+  ports:
+  - port: 8001
+    targetPort: 8001
+    nodePort: 30001
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: governance
+    service: azure-devops-governance
+---
+# GitHub Governance Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: github-governance-deployment
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: governance
+    service: github-governance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-devops
+      component: governance
+      service: github-governance
+  template:
+    metadata:
+      labels:
+        app: ai-devops
+        component: governance
+        service: github-governance
+    spec:
+      containers:
+      - name: github-governance
+        image: github-governance-factory:latest
+        imagePullPolicy: Never  # Use local image
+        ports:
+        - containerPort: 8002
+          name: http
+          protocol: TCP
+        env:
+        - name: GITHUB_GOVERNANCE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: GITHUB_GOVERNANCE_HOST
+        - name: GITHUB_GOVERNANCE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: GITHUB_GOVERNANCE_PORT
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_HOST
+        - name: POSTGRES_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_PORT
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-devops-secrets
+              key: POSTGRES_PASSWORD
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: LOG_LEVEL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+---
+# GitHub Governance Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: github-governance-service
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: governance
+    service: github-governance
+spec:
+  type: NodePort
+  ports:
+  - port: 8002
+    targetPort: 8002
+    nodePort: 30002
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: governance
+    service: github-governance
+---
+# Database Governance Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-governance-deployment
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: governance
+    service: database-governance
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-devops
+      component: governance
+      service: database-governance
+  template:
+    metadata:
+      labels:
+        app: ai-devops
+        component: governance
+        service: database-governance
+    spec:
+      containers:
+      - name: database-governance
+        image: database-governance-factory:latest
+        imagePullPolicy: Never  # Use local image
+        ports:
+        - containerPort: 8003
+          name: http
+          protocol: TCP
+        env:
+        - name: DATABASE_GOVERNANCE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: DATABASE_GOVERNANCE_HOST
+        - name: DATABASE_GOVERNANCE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: DATABASE_GOVERNANCE_PORT
+        - name: POSTGRES_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_HOST
+        - name: POSTGRES_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_PORT
+        - name: POSTGRES_DB
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_DB
+        - name: POSTGRES_USER
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-devops-secrets
+              key: POSTGRES_PASSWORD
+        - name: MONGO_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: MONGO_HOST
+        - name: MONGO_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: MONGO_PORT
+        - name: MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ai-devops-secrets
+              key: MONGO_PASSWORD
+        - name: ENVIRONMENT
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: ENVIRONMENT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: ai-devops-config
+              key: LOG_LEVEL
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "250m"
+---
+# Database Governance Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-governance-service
+  namespace: ai-devops-local
+  labels:
+    app: ai-devops
+    component: governance
+    service: database-governance
+spec:
+  type: NodePort
+  ports:
+  - port: 8003
+    targetPort: 8003
+    nodePort: 30003
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-devops
+    component: governance
+    service: database-governance
