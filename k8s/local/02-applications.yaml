@@ -165,6 +165,7 @@ spec:
     spec:
       containers:
       - name: azure-devops-governance
+        image: azure-devops-governance-factory-azure-devops-governance-factory:latest
         imagePullPolicy: Never  # Use local image
         ports:
         - containerPort: 8001
